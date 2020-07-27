@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cari Kata</title>
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css">
+<!-- Google Fonts -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap">
+<!-- Bootstrap core CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet">
+<!-- Material Design Bootstrap -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.19.1/css/mdb.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <div class="jumbotron">
+            <h1>Cari Kata Vue Js</h1>
+        </div>
+        <div class="container">
+            <div class="input-group md-form form-sm form-2 pl-0">
+                <input type="hidden" name="" class="url" v-model="url"/>
+                <input class="form-control my-0 py-1 red-border kataKunci" type="text" 
+                placeholder="Masukkan Kata Kunci" aria-label="Search" v-model="kataKunci">
+                <div class="input-group-append">
+                  <button class="input-group-text red lighten-3 bersihkan" @click="bersihkan"><i class="fas fa-trash text-grey"
+                      aria-hidden="true"></i></button>
+                </div>
+              </div>
+            
+            <div class="total mb-5">Total Hasil: {{ paginasi.total }}</div>
+            <div class="halaman mb-5">Halaman ke: {{ paginasi.page }}</div>
+
+            <ul class="daftar">
+                <li v-for="(hasil, i) in daftarHasil" :key="i" class="mb-3">
+                  <span v-html="hasil.text"></span>
+                  <a :href="`${url}&t=${hasil.start}s`" target="_blank">Youtube</a>
+                </li>
+            </ul>
+            <div class="form-inline">
+                <button class="btn btn-default ml-3 pertama" @click="navigasi('first')" :disabled="!paginasi['first']">First</button>
+                <button class="btn btn-default ml-1 sebelumnya" @click="navigasi('prev')" :disabled="!paginasi['prev']">Prev</button>
+                <button class="btn btn-default ml-1 selanjutnya" @click="navigasi('next')" :disabled="!paginasi['next']">Next</button>
+                <button class="btn btn-default ml-1 terakhir" @click="navigasi('last')" :disabled="!paginasi['last']">Last</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="index.js"></script>
+    <script>
+        new Vue({
+        el: '#app',
+        data: {
+          url: 'https://www.youtube.com/watch?v=klnvttPfOUM',
+          kataKunci: '',
+          daftarHasil: [],
+          paginasi: {
+            first: null,
+            last: null,
+            prev: null,
+            next: null,
+            total: 0,
+            page: null
+          }
+        },
+        watch: {
+          kataKunci: pDebounce(async function tanganiKataKunci(kataKunci) {
+            if (kataKunci && kataKunci.length >= 3) {
+              await this.cari(kataKunci, this.url)
+            } else {
+              this.bersihkanHasilDanPaginasi()
+            }
+          }, 250)
+        },
+        methods: {
+          async cari(kataKunci, url, paginasi) {
+            try {
+              const respon = await fetch(
+                paginasi
+                  ? paginasi
+                  : `https://cari-teks-video-api.vercel.app/api/search?q=${kataKunci}&url=${encodeURIComponent(
+                      url
+                    )}`
+              ).then(_ => (_.ok ? _.json() : []))
+
+              this.daftarHasil = respon.data
+              this.paginasi.first = respon.first
+              this.paginasi.last = respon.last
+              this.paginasi.prev = respon.prev
+              this.paginasi.next = respon.next
+              this.paginasi.total = respon.total
+              this.paginasi.page = respon.page
+            } catch (error) {}
+          },
+          async navigasi(type) {
+            if (!this.paginasi[type]) {
+              return
+            }
+            await this.cari(this.kataKunci, this.url, this.paginasi[type])
+          },
+          bersihkan() {
+            this.kataKunci = ''
+            this.bersihkanHasilDanPaginasi()
+          },
+          bersihkanHasilDanPaginasi() {
+            this.daftarHasil = []
+            this.paginasi = {
+              first: null,
+              last: null,
+              prev: null,
+              next: null,
+              total: 0,
+              page: null
+            }
+          }
+        }
+      })
+    </script>
+</body>
+</html>
